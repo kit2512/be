@@ -186,6 +186,7 @@ class WorkDay(BaseModel):
 class WorkDaysResponse(BaseModel):
     work_days: List[WorkDay]
     total_hours: float
+    punishment_hours: float
     employee_id: int
     start_date: Optional[date]
     end_date: Optional[date]
