@@ -1,4 +1,5 @@
-from typing import List
+import datetime
+from typing import List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
@@ -208,9 +209,9 @@ async def delete_card(id: str, db=Depends(get_db)):
         raise HTTPException(404, "No card with id {}".format(id))
 
 
-@app.get('/work_days', response_model=List[schemas.WorkDay])
-async def get_work_hour(request: schemas.WorkdayRequest, db: Session = Depends(get_db)):
-    return crud.get_emp_work_hour(db, request.employee_id, request.start_date, request.end_date)
+@app.get('/work_days/{employee_id}', response_model=schemas.WorkDaysResponse)
+async def get_work_hour(employee_id: int, start_date: Optional[datetime.date] = None, end_date: Optional[datetime.date] = None, db: Session = Depends(get_db)):
+    return crud.get_emp_work_hour(db, employee_id, start_date, end_date)
 
 
 def convert_cart_to_card_get(card: models.RfidCard | None = None):

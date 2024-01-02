@@ -180,6 +180,7 @@ class WorkDay(BaseModel):
     date: date
     start_time: datetime
     end_time: datetime
+    total_hours: float
 
 
 class WorkDaysResponse(BaseModel):

@@ -2,6 +2,8 @@ services:
   pythonapp:
     build: .
     command: sh -c "sleep 10s; uvicorn main:app --host 0.0.0.0 --port 80 --reload"
+    volumes:
+      - ./:/usr/app/src/
     ports:
       - '0.0.0.0:80:80'
     depends_on:

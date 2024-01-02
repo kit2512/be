@@ -304,13 +304,33 @@ def delete_card(db: Session, id: str):
         return db_card
 
 
-def get_emp_work_hour(db: Session, emp_id: int, start_date: int | None, end_date: int | None):
+def get_day_hours(start_time: datetime, end_time: datetime) -> float:
+    if start_time.date() != end_time.date():
+        raise HTTPException(400, "Start time and end time must be in the same day")
+    if (start_time - end_time).total_seconds() <= 0:
+        return 0
+    work_start_time = start_time.replace(hour=8, minute=0, second=0) if start_time.hour < 8 else start_time
+    work_end_time = end_time.replace(hour=17, minute=0, second=0) if end_time.hour > 17 else end_time
+    lunch_start_time = start_time.replace(hour=12, minute=0, second=0) if start_time.hour < 12 else start_time
+    lunch_end_time = end_time.replace(hour=13, minute=0, second=0) if end_time.hour > 13 else end_time
+    morning_hours = (work_end_time - work_start_time - (lunch_end_time - lunch_start_time)).total_seconds() / 3600
+    return morning_hours
+
+
+def get_emp_work_hour(db: Session, emp_id: int, start_date: int | None, end_date: int | None) -> WorkDaysResponse:
     results = db.execute(
         text('select date(date_created) as date, max(date_created) as start_time, min(date_created) as end_time from checkin_history_table where employee_id = '+ str(emp_id) +' group by date_created'),
     ).all()
     data = []
     for result in results:
+        print(result[0])
         if (start_date and result[0] < start_date) or (end_date and result[0] > end_date):
             continue
-        data.append(WorkDay(date=result[0], start_time=result[1], end_time=result[2]))
-    return data
+        data.append(WorkDay(date=result[0], start_time=result[1], end_time=result[2], total_hours=get_day_hours(result[1], result[2])))
+    return WorkDaysResponse(
+        work_days=data,
+        total_hours=sum([x.total_hours for x in data]),
+        employee_id=emp_id,
+        start_date=start_date,
+        end_date=end_date
+    )
