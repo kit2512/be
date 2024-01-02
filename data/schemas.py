@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime, date, timezone, timedelta
 from typing import Optional, List
 
 from pydantic import BaseModel
@@ -8,7 +8,7 @@ from data.models import UserRole
 
 class UserBase(BaseModel):
     username: str
-    date_created: Optional[datetime] = datetime.now()
+    date_created: Optional[datetime] = datetime.now(tz=timezone(timedelta(hours=7)))
     role: UserRole
     first_name: str
     last_name: str
@@ -66,7 +66,7 @@ class CheckinHistoryItemCreate(BaseModel):
 
 class RoomBase(BaseModel):
     name: str
-    date_created: Optional[datetime] = datetime.now()
+    date_created: Optional[datetime] = datetime.now(tz=timezone(timedelta(hours=7)))
 
 
 class Room(RoomBase):
@@ -93,7 +93,7 @@ class RfidMachine(RfidMachineBase):
     room_id: Optional[int] = None
     room: Optional[Room] = None
     checkin_history: Optional[List["CheckinHistoryItemGet"]] = None
-    date_created: Optional[datetime] = datetime.now()
+    date_created: Optional[datetime] = datetime.now(tz=timezone(timedelta(hours=7)))
 
     class Config:
         from_attributes = True
@@ -121,7 +121,7 @@ class CheckinHistoryItem(CheckinHistoryItemBase):
     employee: Employee
     rfid_machine_id: int
     rfid_machine: RfidMachine
-    date_created: Optional[datetime] = datetime.now()
+    date_created: Optional[datetime] = datetime.now(tz=timezone(timedelta(hours=7)))
 
     class Config:
         from_attributes = True
@@ -129,7 +129,7 @@ class CheckinHistoryItem(CheckinHistoryItemBase):
 
 class RfidCardBase(BaseModel):
     id: str
-    date_created: datetime = datetime.now()
+    date_created: datetime = datetime.now(tz=timezone(timedelta(hours=7)))
 
 
 class RfidCardCreate(RfidCardBase):

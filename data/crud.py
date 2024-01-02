@@ -1,3 +1,5 @@
+from datetime import timezone, timedelta
+
 import sqlalchemy.exc
 from fastapi import HTTPException
 from sqlalchemy import text
@@ -151,7 +153,7 @@ def create_checkin_history_item(db: Session, new_checkin_item: CheckinHistoryIte
         rfid_machine=db_rfid,
         employee=db_employee,
         card_id=new_checkin_item.card_id,
-        date_created=datetime.now(),
+        date_created=datetime.now(tz=timezone(timedelta(hours=7))),
     )
     try:
         db.add(db_checkin)
