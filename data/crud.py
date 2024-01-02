@@ -342,7 +342,7 @@ def get_emp_work_hour(db: Session, emp_id: int, start_date: int | None, end_date
     ).all()
     data = []
     for result in results:
-        if (start_date and result[0] < start_date) or (end_date and result[0] > end_date):
+        if (start_date and result[0] < start_date) or (end_date and result[0] > end_date) or (result[0] > datetime.now().date()) or (result[1] is None or result[2] is None) or (result[0].weekday() > 4):
             continue
         data.append(WorkDay(date=result[0], start_time=result[1], end_time=result[2], total_hours=get_day_hours(result[1], result[2])))
     total_hours = sum([x.total_hours for x in data])
