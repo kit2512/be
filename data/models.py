@@ -15,6 +15,7 @@ RFID_MACHINE_TABLE = "rfid_machine_table"
 CHECKIN_HISTORY_TABLE = "checkin_history_table"
 ROOM_EMPLOYEE_TABLE = "room_employee_table"
 RFID_CARD_TABLE = "rfid_card_table"
+DAYS_OFF_TABLE = "days_off_table"
 
 
 class UserRole(StrEnum):
@@ -55,6 +56,8 @@ class Employee(Base):
     allowed_rooms: Mapped[List["Room"]] = relationship(secondary=room_employee_table,
                                                        back_populates="allowed_employees")
     card: Mapped["RfidCard"] = relationship(back_populates='employee')
+    # salary = Column(Integer, nullable=False, default=0)
+    # days_off: Mapped[List['DayOff']] = relationship("DayOff", back_populates="approved_by")
 
 
 class Room(Base):
@@ -106,3 +109,26 @@ class CheckinHistoryItem(Base):
     allow_checkin = Column(Boolean, nullable=False, default=True)
     card: Mapped[RfidCard] = relationship(back_populates="checkin_history")
     card_id: Mapped[String] = mapped_column(ForeignKey(RFID_CARD_TABLE + '.id'))
+
+#
+# class DayOff(Base):
+#     __tablename__ = DAYS_OFF_TABLE
+#
+#     id = Column(Integer, nullable=False, primary_key=True)
+#     employee_id: Mapped[Integer] = mapped_column(ForeignKey(EMPLOYEE_TABLE + ".id"))
+#     employee: Mapped[Employee] = relationship(back_populates="days_off")
+#     start_date = Column(DateTime, nullable=False)
+#     end_date = Column(DateTime, nullable=False)
+#     date_created = Column(DateTime, nullable=False, default=datetime.datetime.now(tz=datetime.timezone(
+#         datetime.timedelta(hours=7))))
+#     reason = Column(String(200), nullable=False)
+#     approved_by_id: Mapped[Integer] = mapped_column(ForeignKey(EMPLOYEE_TABLE + ".id"), nullable=True)
+#     approved_by: Mapped[Employee] = relationship("Employee", back_populates='days_off')
+#
+#     @property
+#     def is_approved(self):
+#         return self.approved_by_id is not None
+#
+#     @property
+#     def total_hours(self):
+#         return (self.end_date - self.start_date).total_seconds() / 3600

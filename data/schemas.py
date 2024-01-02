@@ -195,3 +195,26 @@ class WorkdayRequest(BaseModel):
     employee_id: int
     start_date: Optional[date]
     end_date: Optional[date]
+
+
+class DayOffBase(BaseModel):
+    start_date: date
+    end_date: date
+    reason: str
+
+
+class DayOff(DayOffBase):
+    id: int
+    employee_id: int
+    employee: Employee
+    date_created: datetime = datetime.now(tz=timezone(timedelta(hours=7)))
+    approved_by_id: int | None = None
+    approved_by: Employee | None = None
+
+
+class DayOffCreate(DayOffBase):
+    employee_id: int
+
+
+class DayOffGet(DayOff):
+    pass
