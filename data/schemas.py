@@ -45,6 +45,7 @@ class Employee(BaseModel):
     checkin_history: List["CheckinHistoryItem"] = []
     allowed_rooms: List["Room"] = []
     card: Optional['RfidCard'] = None
+    salary: int
 
     class Config:
         from_attributes = True
@@ -57,6 +58,7 @@ class EmployeeCreate(EmployeeBase):
     password: str
     role: UserRole = UserRole.employee
     allowed_rooms: List[int] = []
+    salary: int
 
 
 class CheckinHistoryItemCreate(BaseModel):
@@ -155,6 +157,7 @@ class EmployeeGet(BaseModel):
     checkin_history: List["CheckinHistoryItemGet"] = []
     allowed_rooms: List["Room"] = []
     card: RfidCardGet | None = None
+    salary: int
 
 
 class EmployeeUpdateRequest(BaseModel):
@@ -164,6 +167,7 @@ class EmployeeUpdateRequest(BaseModel):
     password: Optional[str]
     role: Optional[UserRole]
     allowed_rooms: Optional[List[int]] = []
+    salary: Optional[int]
 
 
 class EmployeeAssignRooms(BaseModel):
@@ -190,6 +194,7 @@ class WorkDaysResponse(BaseModel):
     employee_id: int
     start_date: Optional[date]
     end_date: Optional[date]
+    paid_amount: int
 
 
 class WorkdayRequest(BaseModel):

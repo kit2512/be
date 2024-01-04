@@ -68,7 +68,7 @@ def create_employee(db: Session, employee: EmployeeCreate):
         db_employee.user = db_user
         db_employee.user_id = db_user.id
         db_employee.allowed_rooms = get_rooms_by_ids(db, room_ids=employee.allowed_rooms)
-        print(db_employee.allowed_rooms)
+        db_employee.salary = employee.salary
         db.add(db_employee)
         db.commit()
         db.refresh(db_employee)
@@ -320,7 +320,7 @@ def get_day_hours(start_time: datetime, end_time: datetime) -> float:
     return round((morning_hours.total_seconds() + afternoon_hours.total_seconds()) / 3600, 2)
 
 
-def daterange(start_date, end_date):
+def daterange(start_date, end_date) -> List[date]:
     for n in range(int((end_date - start_date).days + 1)):
         yield start_date + timedelta(n)
 
@@ -329,22 +329,30 @@ def weekday_hours_between_dates(date1: date, date2: date) -> float:
     # Initialize a counter for weekdays
     weekdays = 0
     # Loop from date1 to date2
-    for date in daterange(date1, date2):
-        if date.weekday() < 5:
+    for date_item in daterange(date1, date2):
+        if date_item.weekday() < 5:
             weekdays += 1
     # Return the number of weekdays
     return weekdays * 8
 
 
 def get_emp_work_hour(db: Session, emp_id: int, start_date: int | None, end_date: int | None) -> WorkDaysResponse:
+    db_employee = db.query(models.Employee).filter(models.Employee.id == emp_id).first()
+    if not db_employee:
+        raise HTTPException(404, detail="No employee with id {}".format(emp_id))
     results = db.execute(
-        text('select date(date_created) as date, min(date_created) as start_time, max(date_created) as end_time from checkin_history_table where employee_id = '+ str(emp_id) +' group by date(date_created) order by date(date_created) asc')
+        text(
+            'select date(date_created) as date, min(date_created) as start_time, max(date_created) as end_time from checkin_history_table where employee_id = ' + str(
+                emp_id) + ' group by date(date_created) order by date(date_created) asc')
     ).all()
     data = []
     for result in results:
-        if (start_date and result[0] < start_date) or (end_date and result[0] > end_date) or (result[0] > datetime.now().date()) or (result[1] is None or result[2] is None) or (result[0].weekday() > 4):
+        if (start_date and result[0] < start_date) or (end_date and result[0] > end_date) or (
+                result[0] > datetime.now().date()) or (result[1] is None or result[2] is None) or (
+                result[0].weekday() > 4):
             continue
-        data.append(WorkDay(date=result[0], start_time=result[1], end_time=result[2], total_hours=get_day_hours(result[1], result[2])))
+        data.append(WorkDay(date=result[0], start_time=result[1], end_time=result[2],
+                            total_hours=get_day_hours(result[1], result[2])))
     total_hours = sum([x.total_hours for x in data])
     weekday_hours = 0 if not data else weekday_hours_between_dates(data[0].date, data[-1].date)
     return WorkDaysResponse(
@@ -353,5 +361,36 @@ def get_emp_work_hour(db: Session, emp_id: int, start_date: int | None, end_date
         punishment_hours=round(weekday_hours - total_hours, 2),
         employee_id=emp_id,
         start_date=start_date,
-        end_date=end_date
+        end_date=end_date,
+        paid_amount=db_employee.salary * total_hours,
     )
+
+
+def create_days_off(db: Session, days_off: DayOffCreate):
+    db_employee = get_employee(db, days_off.employee_id)
+    if not db_employee:
+        raise HTTPException(404, detail="No employee with id {}".format(days_off.employee_id))
+    db_day_off = models.DayOff(
+        start_date=days_off.start_date,
+        end_date=days_off.end_date,
+        reason=days_off.reason,
+        employee_id=days_off.employee_id,
+    )
+    duplicated_days_off = db.query(models.DayOff).filter(models.DayOff.employee_id == days_off.employee_id
+                                                         and (models.DayOff.start_date in daterange(days_off.start_date, days_off.end_date) or models.DayOff.end_date in daterange(days_off.start_date, days_off.end_date))).all()
+    if duplicated_days_off:
+        raise HTTPException(400, detail="Days off already exists")
+    db.add(db_day_off)
+    db.commit()
+    db.refresh(db_day_off)
+    return db_day_off
+
+
+def get_days_off(db: Session, employee_id: int | None = None, approved: bool | None = None, ):
+    query = db.query(models.DayOff)
+    if employee_id:
+        query = query.filter(models.DayOff.employee_id == employee_id)
+    if approved is not None:
+        query = query.filter(
+            models.DayOff.approved_by_id is not None if approved else models.DayOff.approved_by_id is None)
+    return query.all()

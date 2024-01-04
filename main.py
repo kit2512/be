@@ -81,7 +81,22 @@ async def delete_employee(employee_id: int, db: Session = Depends(get_db)):
         "success": True
     }
 
+
 @app.patch('/employee/$id/update', response_model=EmployeeGet)
+async def update_employee(employee_id: int, new_employee: EmployeeCreate, db: Session = Depends(get_db)):
+    db_employee = crud.update_employee(db, employee_id, new_employee)
+    return EmployeeGet(
+        id=db_employee.id,
+        user_id=db_employee.user_id,
+        user=UserGet(
+            id=db_employee.user_id,
+            username=db_employee.user.username,
+            first_name=db_employee.user.first_name,
+            last_name=db_employee.user.last_name,
+            date_created=db_employee.user.date_created,
+            role=db_employee.user.role
+        ),
+    )
 
 @app.post('/checkin/create', response_model=CheckinHistoryItemGet)
 async def create_checkin_history(new_checkin_history: CheckinHistoryItemCreate, db: Session = Depends(get_db)):
@@ -123,7 +138,8 @@ async def get_employee_lis(db: Session = Depends(get_db), room_id: int | None = 
             id=emp.id,
             user_id=user.id,
             user=convert_user_to_user_get(user),
-            card=convert_cart_to_card_get(emp.card) if emp.card else None
+            card=convert_cart_to_card_get(emp.card) if emp.card else None,
+            salary=emp.salary
         )
         results.append(result)
     return results
@@ -177,8 +193,10 @@ async def get_employee(id: int, db: Session = Depends(get_db)):
         user_id=db_employee.user_id,
         checkin_history=[convert_checkin_item_to_checkin_item_get(x) for x in db_checkin_history],
         allowed_rooms=[convert_room_to_room_get(x) for x in db_rooms],
-        card=convert_cart_to_card_get(db_employee.card)
+        card=convert_cart_to_card_get(db_employee.card),
+        salary=db_employee.salary
     )
+
 
 @app.get('/checkin/history', response_model=List[CheckinHistoryItemGet])
 async def get_checkin_history(room_id: int | None = None, rfid_id: int | None = None, employee_id: int | None = None,
