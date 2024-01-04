@@ -39,13 +39,14 @@ async def create_employee(new_employee: EmployeeCreate, db: Session = Depends(ge
     return EmployeeGet(
         id=user_db.id,
         user_id=user_db.user_id,
+        salary=user_db.salary,
         user=UserGet(
             id=user_db.user_id,
             username=user_db.user.username,
             first_name=user_db.user.first_name,
             last_name=user_db.user.last_name,
             date_created=user_db.user.date_created,
-            role=user_db.user.role
+            role=user_db.user.role,
         ),
     )
 
@@ -97,6 +98,7 @@ async def update_employee(employee_id: int, new_employee: EmployeeCreate, db: Se
             role=db_employee.user.role
         ),
     )
+
 
 @app.post('/checkin/create', response_model=CheckinHistoryItemGet)
 async def create_checkin_history(new_checkin_history: CheckinHistoryItemCreate, db: Session = Depends(get_db)):
@@ -171,7 +173,7 @@ async def create_card(new_card: RfidCardCreate, db: Session = Depends(get_db)):
 
 
 @app.get('/cards', response_model=List[RfidCardGet])
-async def get_cards(is_available: bool = False, db: Session=Depends(get_db)):
+async def get_cards(is_available: bool = False, db: Session = Depends(get_db)):
     db_cards = crud.get_cards(is_available, db)
     return [convert_cart_to_card_get(x) for x in db_cards]
 
@@ -228,7 +230,8 @@ async def delete_card(id: str, db=Depends(get_db)):
 
 
 @app.get('/work_days/{employee_id}', response_model=schemas.WorkDaysResponse)
-async def get_work_hour(employee_id: int, start_date: Optional[datetime.date] = None, end_date: Optional[datetime.date] = None, db: Session = Depends(get_db)):
+async def get_work_hour(employee_id: int, start_date: Optional[datetime.date] = None,
+                        end_date: Optional[datetime.date] = None, db: Session = Depends(get_db)):
     return crud.get_emp_work_hour(db, employee_id, start_date, end_date)
 
 
@@ -266,4 +269,3 @@ def convert_checkin_item_to_checkin_item_get(item: models.CheckinHistoryItem):
         room_id=item.rfid_machine.room_id,
         card_id=item.card.id if item.card else None,
     )
-
