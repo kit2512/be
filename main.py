@@ -235,6 +235,11 @@ async def get_work_hour(employee_id: int, start_date: Optional[datetime.date] = 
     return crud.get_emp_work_hour(db, employee_id, start_date, end_date)
 
 
+@app.post('/days_off/create')
+async def create_days_off(payload: schemas.DayOffCreate, db=Depends(get_db)):
+    return crud.create_days_off(db, payload)
+
+
 def convert_cart_to_card_get(card: models.RfidCard | None = None):
     if card:
         return RfidCardGet(

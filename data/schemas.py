@@ -3,7 +3,7 @@ from typing import Optional, List
 
 from pydantic import BaseModel
 
-from data.models import UserRole
+from data.constants import UserRole, DayOffType
 
 
 class UserBase(BaseModel):
@@ -180,11 +180,39 @@ class RoomAssignEmployees(BaseModel):
     employee_ids: List[int]
 
 
+class DayOffBase(BaseModel):
+    start_date: date
+    end_date: date
+    reason: str
+    type: DayOffType
+
+
+class DayOff(DayOffBase):
+    id: int
+    employee_id: int
+    employee: Employee
+    date_created: datetime = datetime.now(tz=timezone(timedelta(hours=7)))
+    approved_by_id: int | None = None
+    approved_by: Employee | None = None
+
+
+class DayOffCreate(DayOffBase):
+    employee_id: int
+
+
+class DayOffGet(DayOffBase):
+    id: int
+    employee_id: int
+    date_created: datetime = datetime.now(tz=timezone(timedelta(hours=7)))
+    approved_by_id: int | None = None
+
+
 class WorkDay(BaseModel):
     date: date
     start_time: datetime
     end_time: datetime
     total_hours: float
+    day_off: Optional[DayOffGet] = None
 
 
 class WorkDaysResponse(BaseModel):
@@ -203,24 +231,3 @@ class WorkdayRequest(BaseModel):
     end_date: Optional[date]
 
 
-class DayOffBase(BaseModel):
-    start_date: date
-    end_date: date
-    reason: str
-
-
-class DayOff(DayOffBase):
-    id: int
-    employee_id: int
-    employee: Employee
-    date_created: datetime = datetime.now(tz=timezone(timedelta(hours=7)))
-    approved_by_id: int | None = None
-    approved_by: Employee | None = None
-
-
-class DayOffCreate(DayOffBase):
-    employee_id: int
-
-
-class DayOffGet(DayOff):
-    pass

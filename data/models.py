@@ -2,25 +2,12 @@ from typing import List
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from sqlalchemy import Integer, Column, DateTime, Enum, ForeignKey, String, Table, Boolean
-from enum import StrEnum
+from sqlalchemy import Integer, Column, DateTime, Enum, ForeignKey, String, Table, Boolean, Date
 import datetime
 
+from .constants import *
 from .database import Base
-
-USER_TABLE = "user_table"
-EMPLOYEE_TABLE = "employee_table"
-ROOM_TABLE = "room_table"
-RFID_MACHINE_TABLE = "rfid_machine_table"
-CHECKIN_HISTORY_TABLE = "checkin_history_table"
-ROOM_EMPLOYEE_TABLE = "room_employee_table"
-RFID_CARD_TABLE = "rfid_card_table"
-DAYS_OFF_TABLE = "days_off_table"
-
-
-class UserRole(StrEnum):
-    manager = "manager"
-    employee = "employee"
+from .schemas import DayOffGet
 
 
 class User(Base):
@@ -119,14 +106,15 @@ class DayOff(Base):
     id = Column(Integer, nullable=False, primary_key=True)
     employee_id: Mapped[Integer] = mapped_column(ForeignKey(EMPLOYEE_TABLE + ".id"))
     employee: Mapped[Employee] = relationship(back_populates="days_off", foreign_keys='DayOff.employee_id')
-    start_date = Column(DateTime, nullable=False)
-    end_date = Column(DateTime, nullable=False)
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=False)
     date_created = Column(DateTime, nullable=False, default=datetime.datetime.now(tz=datetime.timezone(
         datetime.timedelta(hours=7))))
     reason = Column(String(200), nullable=False)
     approved_by_id: Mapped[Integer] = mapped_column(ForeignKey(EMPLOYEE_TABLE + ".id"), nullable=True)
     approved_by: Mapped[Employee] = relationship("Employee", back_populates='days_off',
                                                  foreign_keys='DayOff.approved_by_id')
+    type: Mapped[DayOffType] = Column(Enum(DayOffType), nullable=False)
 
     @property
     def is_approved(self):
@@ -135,4 +123,18 @@ class DayOff(Base):
     @property
     def total_hours(self):
         return (self.end_date.total_seconds() - self.start_date.total_seconds())() / 3600
+
+    @property
+    def day_off_get(self):
+
+        return DayOffGet(
+            id=self.id,
+            employee_id=self.employee_id,
+            start_date=self.start_date,
+            end_date=self.end_date,
+            date_created=self.date_created,
+            reason=self.reason,
+            approved_by_id=self.approved_by_id,
+            type=self.type,
+        )
 

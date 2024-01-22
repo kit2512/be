@@ -321,8 +321,10 @@ def get_day_hours(start_time: datetime, end_time: datetime) -> float:
 
 
 def daterange(start_date, end_date) -> List[date]:
+    dates = []
     for n in range(int((end_date - start_date).days + 1)):
-        yield start_date + timedelta(n)
+        dates.append(start_date + timedelta(n))
+    return dates
 
 
 def weekday_hours_between_dates(date1: date, date2: date) -> float:
@@ -351,9 +353,13 @@ def get_emp_work_hour(db: Session, emp_id: int, start_date: int | None, end_date
                 result[0] > datetime.now().date()) or (result[1] is None or result[2] is None) or (
                 result[0].weekday() > 4):
             continue
+        checkin_date = result[0]
+        db_day_off = db.query(models.DayOff).filter(models.DayOff.employee_id == emp_id).filter(
+            models.DayOff.start_date <= checkin_date).filter(models.DayOff.end_date >= checkin_date).first()
         data.append(WorkDay(date=result[0], start_time=result[1], end_time=result[2],
-                            total_hours=get_day_hours(result[1], result[2])))
-    total_hours = sum([x.total_hours for x in data])
+                            total_hours=get_day_hours(result[1], result[2], ),
+                            day_off=db_day_off.day_off_get if db_day_off else None))
+    total_hours = sum([x.total_hours if (x.day_off is not None) else 0 for x in data])
     weekday_hours = 0 if not data else weekday_hours_between_dates(data[0].date, data[-1].date)
     return WorkDaysResponse(
         work_days=data,
@@ -375,11 +381,19 @@ def create_days_off(db: Session, days_off: DayOffCreate):
         end_date=days_off.end_date,
         reason=days_off.reason,
         employee_id=days_off.employee_id,
+        type=days_off.type,
     )
-    duplicated_days_off = db.query(models.DayOff).filter(models.DayOff.employee_id == days_off.employee_id
-                                                         and (models.DayOff.start_date in daterange(days_off.start_date, days_off.end_date) or models.DayOff.end_date in daterange(days_off.start_date, days_off.end_date))).all()
-    if duplicated_days_off:
-        raise HTTPException(400, detail="Days off already exists")
+
+    date_range = daterange(days_off.start_date, days_off.end_date)
+    print(date_range)
+    db_days_off = db.query(models.DayOff).filter(models.DayOff.employee_id == days_off.employee_id).all()
+    for db_day_off_item in db_days_off:
+        print(db_day_off_item.start_date, db_day_off_item.end_date)
+        is_start_valid = db_day_off_item.start_date not in date_range
+        is_end_valid = db_day_off_item.end_date not in date_range
+        print(is_start_valid, is_end_valid)
+        if not is_start_valid or not is_end_valid:
+            raise HTTPException(400, detail="Employee already has a day off on {}".format(db_day_off_item.start_date))
     db.add(db_day_off)
     db.commit()
     db.refresh(db_day_off)
