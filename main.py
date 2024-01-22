@@ -240,6 +240,10 @@ async def create_days_off(payload: schemas.DayOffCreate, db=Depends(get_db)):
     return crud.create_days_off(db, payload)
 
 
+@app.put('/days_off', response_model=schemas.DayOffGet)
+async def update_days_off(payload: schemas.DayOffUpdate, db=Depends(get_db)):
+    return {}
+
 def convert_cart_to_card_get(card: models.RfidCard | None = None):
     if card:
         return RfidCardGet(

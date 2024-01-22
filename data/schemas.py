@@ -207,6 +207,11 @@ class DayOffGet(DayOffBase):
     approved_by_id: int | None = None
 
 
+class DayOffUpdate(DayOffBase):
+    id: int
+    approved_by_id: int
+
+
 class WorkDay(BaseModel):
     date: date
     start_time: datetime
@@ -229,5 +234,3 @@ class WorkdayRequest(BaseModel):
     employee_id: int
     start_date: Optional[date]
     end_date: Optional[date]
-
-
