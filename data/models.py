@@ -22,6 +22,7 @@ class User(Base):
     first_name = Column(String(30), nullable=False)
     last_name = Column(String(30), nullable=False)
     username = Column(String(100), nullable=False, unique=True)
+    email = Column(String(100), nullable=False, unique=True)
 
 
 room_employee_table = Table(
@@ -126,7 +127,6 @@ class DayOff(Base):
 
     @property
     def day_off_get(self):
-
         return DayOffGet(
             id=self.id,
             employee_id=self.employee_id,

@@ -359,7 +359,7 @@ def get_emp_work_hour(db: Session, emp_id: int, start_date: int | None, end_date
         data.append(WorkDay(date=result[0], start_time=result[1], end_time=result[2],
                             total_hours=get_day_hours(result[1], result[2], ),
                             day_off=db_day_off.day_off_get if db_day_off else None))
-    total_hours = sum([x.total_hours if (x.day_off is not None) else 0 for x in data])
+    total_hours = sum([x.total_hours if (x.day_off is None) else 0 for x in data])
     weekday_hours = 0 if not data else weekday_hours_between_dates(data[0].date, data[-1].date)
     return WorkDaysResponse(
         work_days=data,
@@ -408,3 +408,25 @@ def get_days_off(db: Session, employee_id: int | None = None, approved: bool | N
         query = query.filter(
             models.DayOff.approved_by_id is not None if approved else models.DayOff.approved_by_id is None)
     return query.all()
+
+
+def update_days_off(db: Session, days_off: DayOffUpdate):
+    db_day_off = db.query(models.DayOff).filter(models.DayOff.id == days_off.id).first()
+    if not db_day_off:
+        raise HTTPException(404, detail="No day off with id {}".format(days_off.id))
+    db_day_off.start_date = days_off.start_date
+    db_day_off.end_date = days_off.end_date
+    db_day_off.reason = days_off.reason
+    db_day_off.type = days_off.type
+    db.commit()
+    db.refresh(db_day_off)
+    return db_day_off.day_off_get
+
+
+def delete_days_off(db: Session, id: int):
+    db_day_off = db.query(models.DayOff).filter(models.DayOff.id == id).first()
+    if not db_day_off:
+        raise HTTPException(404, detail="No day off with id {}".format(id))
+    db.delete(db_day_off)
+    db.commit()
+    return db_day_off.day_off_get

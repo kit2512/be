@@ -5,7 +5,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 from starlette.middleware.cors import CORSMiddleware
 
-from data import database, models, crud, schemas
+from data import database, models, crud, schemas, utils
 from data.database import SessionLocal
 from data.schemas import UserGet, EmployeeGet, EmployeeCreate, RfidMachine, Room, RfidMachineCreate, \
     CheckinHistoryItemGet, CheckinHistoryItemCreate, RfidCardCreate, RfidCardGet
@@ -242,7 +242,18 @@ async def create_days_off(payload: schemas.DayOffCreate, db=Depends(get_db)):
 
 @app.put('/days_off', response_model=schemas.DayOffGet)
 async def update_days_off(payload: schemas.DayOffUpdate, db=Depends(get_db)):
-    return {}
+    return crud.update_days_off(db, payload)
+
+
+@app.delete('/days_off/{id}', response_model=schemas.DayOffGet)
+async def delete_days_off(id: int, db=Depends(get_db)):
+    return crud.delete_days_off(db, id)
+
+
+@app.post('/employees/{employee_id}/salary_email')
+async def send_salary_email(employee_id: int, start_date: datetime.date, end_date: datetime.date, db=Depends(get_db)):
+    utils.send_salary_email(db, employee_id, start_date, end_date)
+
 
 def convert_cart_to_card_get(card: models.RfidCard | None = None):
     if card:

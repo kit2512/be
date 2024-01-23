@@ -209,7 +209,6 @@ class DayOffGet(DayOffBase):
 
 class DayOffUpdate(DayOffBase):
     id: int
-    approved_by_id: int
 
 
 class WorkDay(BaseModel):
