@@ -12,6 +12,7 @@ class UserBase(BaseModel):
     role: UserRole
     first_name: str
     last_name: str
+    email: str
 
 
 class User(UserBase):
@@ -59,11 +60,13 @@ class EmployeeCreate(EmployeeBase):
     role: UserRole = UserRole.employee
     allowed_rooms: List[int] = []
     salary: int
+    email: str
 
 
 class CheckinHistoryItemCreate(BaseModel):
     rfid_machine_id: int
     card_id: str | None
+    date_created: Optional[datetime] = datetime.now(tz=timezone(timedelta(hours=7)))
 
 
 class RoomBase(BaseModel):

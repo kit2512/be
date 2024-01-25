@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 from typing import List, Optional
 
@@ -47,6 +48,7 @@ async def create_employee(new_employee: EmployeeCreate, db: Session = Depends(ge
             last_name=user_db.user.last_name,
             date_created=user_db.user.date_created,
             role=user_db.user.role,
+            email=user_db.user.email
         ),
     )
 
@@ -95,7 +97,8 @@ async def update_employee(employee_id: int, new_employee: EmployeeCreate, db: Se
             first_name=db_employee.user.first_name,
             last_name=db_employee.user.last_name,
             date_created=db_employee.user.date_created,
-            role=db_employee.user.role
+            role=db_employee.user.role,
+            email=db_employee.user.email
         ),
     )
 
@@ -252,7 +255,7 @@ async def delete_days_off(id: int, db=Depends(get_db)):
 
 @app.post('/employees/{employee_id}/salary_email')
 async def send_salary_email(employee_id: int, start_date: datetime.date, end_date: datetime.date, db=Depends(get_db)):
-    utils.send_salary_email(db, employee_id, start_date, end_date)
+    utils.send_salary_email(db, employee_id=employee_id, start_date=start_date, end_date=end_date)
 
 
 def convert_cart_to_card_get(card: models.RfidCard | None = None):
@@ -271,7 +274,8 @@ def convert_user_to_user_get(user: models.User):
         first_name=user.first_name,
         last_name=user.last_name,
         date_created=user.date_created,
-        role=user.role
+        role=user.role,
+        email=user.email,
     )
 
 

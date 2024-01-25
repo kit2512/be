@@ -36,7 +36,8 @@ def create_user(db: Session, user: UserCreate):
         last_name=user.last_name,
         role=user.role,
         date_created=user.date_created,
-        hashed_password=get_password_hash(user.password)
+        hashed_password=get_password_hash(user.password),
+        email=user.email,
     )
     db.add(db_user)
     db.commit()
@@ -55,26 +56,24 @@ def get_rooms_by_ids(db: Session, room_ids: List[int]):
 
 
 def create_employee(db: Session, employee: EmployeeCreate):
-    try:
-        db_employee = models.Employee()
-        user_info = UserCreate(
-            username=employee.username,
-            first_name=employee.first_name,
-            last_name=employee.last_name,
-            password=employee.password,
-            role=employee.role,
-        )
-        db_user = create_user(db, user_info)
-        db_employee.user = db_user
-        db_employee.user_id = db_user.id
-        db_employee.allowed_rooms = get_rooms_by_ids(db, room_ids=employee.allowed_rooms)
-        db_employee.salary = employee.salary
-        db.add(db_employee)
-        db.commit()
-        db.refresh(db_employee)
-        return db_employee
-    except sqlalchemy.exc.IntegrityError:
-        raise HTTPException(400, detail="username already taken")
+    db_employee = models.Employee()
+    user_info = UserCreate(
+        username=employee.username,
+        first_name=employee.first_name,
+        last_name=employee.last_name,
+        password=employee.password,
+        role=employee.role,
+        email=employee.email,
+    )
+    db_user = create_user(db, user_info)
+    db_employee.user = db_user
+    db_employee.user_id = db_user.id
+    db_employee.allowed_rooms = get_rooms_by_ids(db, room_ids=employee.allowed_rooms)
+    db_employee.salary = employee.salary
+    db.add(db_employee)
+    db.commit()
+    db.refresh(db_employee)
+    return db_employee
 
 
 def delete_employee(db: Session, employee_id: int):
@@ -136,6 +135,7 @@ def delete_rfid_machine(db: Session, rfid_id: int):
 
 
 def create_checkin_history_item(db: Session, new_checkin_item: CheckinHistoryItemCreate):
+    print(new_checkin_item)
     db_employee = db.query(models.Employee).join(models.RfidCard,
                                                  models.RfidCard.employee_id == models.Employee.id).filter(
         models.RfidCard.id == new_checkin_item.card_id).first()
@@ -153,7 +153,8 @@ def create_checkin_history_item(db: Session, new_checkin_item: CheckinHistoryIte
         rfid_machine=db_rfid,
         employee=db_employee,
         card_id=new_checkin_item.card_id,
-        date_created=datetime.now(tz=timezone(timedelta(hours=7))),
+        date_created=new_checkin_item.date_created if new_checkin_item.date_created is not None else datetime.now(
+            tz=timezone(timedelta(hours=7))),
     )
     try:
         db.add(db_checkin)
@@ -311,6 +312,9 @@ def get_day_hours(start_time: datetime, end_time: datetime) -> float:
         raise HTTPException(400, "Start time and end time must be in the same day")
     if (end_time - start_time).total_seconds() <= 0:
         return 0
+    if (start_time > start_time.replace(hour=17, minute=0, second=0) or end_time < end_time.replace(hour=8, minute=0,
+                                                                                                    second=0)):
+        return 0
     work_start_time = start_time.replace(hour=8, minute=0, second=0) if start_time.hour < 8 else start_time
     work_end_time = end_time.replace(hour=17, minute=0, second=0) if end_time.hour > 17 else end_time
     lunch_start_time = start_time.replace(hour=12, minute=0, second=0) if start_time.hour < 12 else start_time
@@ -338,7 +342,7 @@ def weekday_hours_between_dates(date1: date, date2: date) -> float:
     return weekdays * 8
 
 
-def get_emp_work_hour(db: Session, emp_id: int, start_date: int | None, end_date: int | None) -> WorkDaysResponse:
+def get_emp_work_hour(db: Session, emp_id: int, start_date: date | None, end_date: date | None) -> WorkDaysResponse:
     db_employee = db.query(models.Employee).filter(models.Employee.id == emp_id).first()
     if not db_employee:
         raise HTTPException(404, detail="No employee with id {}".format(emp_id))
@@ -359,7 +363,7 @@ def get_emp_work_hour(db: Session, emp_id: int, start_date: int | None, end_date
         data.append(WorkDay(date=result[0], start_time=result[1], end_time=result[2],
                             total_hours=get_day_hours(result[1], result[2], ),
                             day_off=db_day_off.day_off_get if db_day_off else None))
-    total_hours = sum([x.total_hours if (x.day_off is None) else 0 for x in data])
+    total_hours = sum([x.total_hours if (x.day_off is None or x.day_off.type is DayOffType.paid) else 0 for x in data])
     weekday_hours = 0 if not data else weekday_hours_between_dates(data[0].date, data[-1].date)
     return WorkDaysResponse(
         work_days=data,

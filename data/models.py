@@ -24,6 +24,10 @@ class User(Base):
     username = Column(String(100), nullable=False, unique=True)
     email = Column(String(100), nullable=False, unique=True)
 
+    @property
+    def full_name(self):
+        return self.first_name + " " + self.last_name
+
 
 room_employee_table = Table(
     ROOM_EMPLOYEE_TABLE,
